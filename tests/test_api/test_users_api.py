@@ -126,6 +126,22 @@ async def test_login_incorrect_password(async_client, verified_user):
     assert "Incorrect email or password." in response.json().get("detail", "")
 
 @pytest.mark.asyncio
+async def test_login_weak_password(async_client, verified_user):
+    user_data = {
+        "email": verified_user.email,
+        "password": "abc234",
+        "role": verified_user.role.name  
+    }
+    response = await async_client.post("/register/", json=user_data)
+    assert response.status_code == 422
+
+    details = response.json().get("detail", [])
+    
+    found = any("String should have at least 8 characters" in error.get("msg", "") for error in details)
+    assert found, "Expected password length error message not found in response details"
+
+
+@pytest.mark.asyncio
 async def test_login_unverified_user(async_client, unverified_user):
     form_data = {
         "username": unverified_user.email,
