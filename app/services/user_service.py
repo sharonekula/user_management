@@ -201,3 +201,36 @@ class UserService:
             await session.commit()
             return True
         return False
+    
+    @classmethod
+    async def modify_user(cls, session: AsyncSession, user_id: str, update_data: Dict[str, str]) -> Optional[User]:
+        user = await cls.get_user_by_id(session, user_id)
+        if user:
+            valid_data = UserUpdate(**update_data).model_dump(exclude_unset=True)
+            query = update(User).where(User.id == user.id).values(**valid_data).execution_options(synchronize_session="fetch")
+            await session.execute(query)
+            await session.commit()
+            return user
+        else:
+            raise Exception("User not found")
+
+    @classmethod
+    async def promote_to_professional(cls, session: AsyncSession, user_id: UUID, email_service: EmailService):
+        user = await cls.get_user_by_id(session, user_id)
+        email_notify = True
+        if user and user.is_professional:
+            email_notify = False
+        if user:
+            user.is_professional = True
+            user.professional_status_updated_at = datetime.now()
+            await session.commit()
+            if email_notify:
+                await email_service.send_pro_promotion_email(user.email)
+            return user
+        return None
+    
+    @classmethod
+    async def get_user_by_id(cls, session: AsyncSession, user_id: UUID) -> Optional[User]:
+        result = await session.execute(select(User).where(User.id == user_id))
+        return result.scalar_one_or_none()
+
