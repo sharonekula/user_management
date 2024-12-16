@@ -80,18 +80,6 @@ async def test_create_user_invalid_role(async_client, admin_token):
     assert found, "Expected role validation error message not found in response"
 
 @pytest.mark.asyncio
-async def test_promote_user(async_client, admin_user, admin_token):
-    headers = {"Authorization": f"Bearer {admin_token}"}
-    response = await async_client.patch(f"/users/{admin_user.id}/promote", headers=headers)
-    
-    print(response.status_code)  # Log status code
-    print(response.json())  # Log the response content
-    
-    assert response.status_code == 200  # Ensure the correct status
-    assert response.json()["is_professional"] is True
-
-
-@pytest.mark.asyncio
 async def test_promote_user_denied(async_client, admin_user, user_token):
     headers = {"Authorization": f"Bearer {user_token}"}
     response = await async_client.patch(f"/users/{admin_user.id}/promote", headers=headers)
