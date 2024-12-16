@@ -160,6 +160,20 @@ async def unverified_user(db_session):
     await db_session.commit()
     return user
 
+@pytest.fixture
+async def professional_user(db_session: AsyncSession):
+    user = User(
+        nickname="ProfessionalUser",
+        email="professional@example.com",
+        password_hash=hash_password("StrongPassword123!"),
+        is_professional=True,
+        role="AUTHENTICATED"
+    )
+    db_session.add(user)
+    await db_session.commit()
+    await db_session.refresh(user)
+    return user
+
 @pytest.fixture(scope="function")
 async def users_with_same_role_50_users(db_session):
     users = []
@@ -225,6 +239,11 @@ def manager_token(manager_user):
 @pytest.fixture(scope="function")
 def user_token(user):
     token_data = {"sub": str(user.id), "role": user.role.name}
+    return create_access_token(data=token_data, expires_delta=timedelta(minutes=30))
+
+@pytest.fixture(scope="function")
+def auth_token(verified_user):
+    token_data = {"sub": str(verified_user.id), "role": verified_user.role.name}
     return create_access_token(data=token_data, expires_delta=timedelta(minutes=30))
 
 @pytest.fixture
