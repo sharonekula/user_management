@@ -51,6 +51,64 @@ async def test_update_user_email_access_allowed(async_client, admin_user, admin_
     assert response.status_code == 200
     assert response.json()["email"] == updated_data["email"]
 
+@pytest.mark.asyncio
+async def test_update_nonexistent_user(async_client, admin_token):
+    non_existent_user_id = "00000000-0000-0000-0000-000000000000"
+    updated_data = {"first_name": "NonExistent"}
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    response = await async_client.put(f"/users/{non_existent_user_id}", json=updated_data, headers=headers)
+    assert response.status_code == 404
+    assert "User not found" in response.json().get("detail", "")
+
+@pytest.mark.asyncio
+async def test_create_user_invalid_role(async_client, admin_token):
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    user_data = {
+        "nickname": "InvalidRoleUser",
+        "email": "invalidrole@example.com",
+        "password": "StrongPassword123!",
+        "role": "INVALID_ROLE"
+    }
+    response = await async_client.post("/users/", json=user_data, headers=headers)
+    assert response.status_code == 422
+    error_details = response.json().get("detail", [])
+
+    found = any(
+        "Input should be 'ANONYMOUS', 'AUTHENTICATED', 'MANAGER' or 'ADMIN'" in error.get("msg", "")
+        for error in error_details
+    )
+    assert found, "Expected role validation error message not found in response"
+
+@pytest.mark.asyncio
+async def test_promote_user(async_client, admin_user, admin_token):
+    headers = {"Authorization": f"Bearer {admin_token}"}
+    response = await async_client.patch(f"/users/{admin_user.id}/promote", headers=headers)
+    
+    print(response.status_code)  # Log status code
+    print(response.json())  # Log the response content
+    
+    assert response.status_code == 200  # Ensure the correct status
+    assert response.json()["is_professional"] is True
+
+
+@pytest.mark.asyncio
+async def test_promote_user_denied(async_client, admin_user, user_token):
+    headers = {"Authorization": f"Bearer {user_token}"}
+    response = await async_client.patch(f"/users/{admin_user.id}/promote", headers=headers)
+    assert response.status_code == 403
+
+@pytest.mark.asyncio
+async def test_update_self_profile_not_allowed(async_client, admin_user, admin_token):
+    updated_data = {"first_name": "Test", "last_name": "User"}
+    response = await async_client.put("/users/update-profile", json=updated_data)
+    assert response.status_code == 401
+
+@pytest.mark.asyncio
+async def test_update_user_success(async_client, verified_user, auth_token):
+    updated_data = {"first_name": "Test", "last_name": "User"}
+    headers = {"Authorization": f"Bearer {auth_token}"}
+    response = await async_client.put("/users/update-profile", json=updated_data, headers=headers)
+    assert response.status_code == 403
 
 @pytest.mark.asyncio
 async def test_delete_user(async_client, admin_user, admin_token):
