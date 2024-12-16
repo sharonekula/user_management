@@ -50,6 +50,8 @@ docker compose exec fastapi pytest
 
 ## Deploying to DockerHub
 
+Link to my DockerHub repository: https://hub.docker.com/repository/docker/sharonekula/user_management/general
+
 Ensure your Docker setup is correct and run the following command to deploy:
 ```
 docker push sharonekula/user_management:latest
