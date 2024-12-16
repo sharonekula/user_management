@@ -35,3 +35,8 @@ class EmailService:
             "verification_url": verification_url,
             "email": user.email
         }, 'email_verification')
+
+    async def send_pro_promotion_email(self, user_email: str):
+        subject = "Welcome to Professional Membership!"
+        body = "Hi there! Congratulations on your promotion to professional status. Enjoy the exclusive benefits!"
+        self.smtp_client.send_email(user_email, subject, body)

@@ -250,3 +250,22 @@ async def verify_email(user_id: UUID, token: str, db: AsyncSession = Depends(get
     if await UserService.verify_email_with_token(db, user_id, token):
         return {"message": "Email verified successfully"}
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification token")
+
+@router.put("/users/update-profile", response_model=UserResponse)
+async def update_profile(update: UserUpdate, db: AsyncSession = Depends(get_db), current_user=Depends(get_current_user)):
+    try:
+        update_data = update.model_dump(exclude_unset=True)
+        updated_user = await UserService.modify_user(db, current_user["user_id"], update_data)
+        return updated_user
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Error updating profile: {e}")
+
+@router.patch("/users/{user_id}/promote", response_model=UserResponse)
+async def promote_user_to_pro(user_id: UUID, request: Request, db: AsyncSession = Depends(get_db), token: str = Depends(oauth2_scheme), current_user: dict = Depends(require_role(["ADMIN", "MANAGER"])), email_service: EmailService = Depends(get_email_service)):
+    try:
+        promoted_user = await UserService.promote_to_professional(db, user_id, email_service)
+        if not promoted_user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        return promoted_user
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Error promoting user: {e}")
